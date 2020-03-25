@@ -3,7 +3,10 @@
 #include "SDL2/i686-w64-mingw32/include/SDL2/SDL_mixer.h"
 
 #include <windows.h>
+#include <ctime>
 #include <iostream>
+
+#define N 8
 
 using namespace std;
 
@@ -12,7 +15,19 @@ typedef unsigned short us;
 enum mode
 {
   MENU,
-  MODE
+  GAME
+};
+
+enum cell
+{
+  BLACK_FREE,
+  BLACK_USUAL,
+  BLACK_QUENN,
+  WHITE_FREE,
+  WHITE_USUAL,
+  WHITE_QUEEN,
+  CAN_DO_STEP,
+  CAN_GET_CELL
 };
 
 struct Screen
@@ -71,13 +86,21 @@ private:
   mode mode;
 
   SDL_Rect backgroundRect;
-  SDL_Texture *backgroundTexture;
+  SDL_Texture *backgroundMenuTexture;
 
   SDL_Rect chessBoardRect;
   SDL_Texture *chessBoardTexture;
 
   Button playButton;
   Button exitButton;
+
+  SDL_Texture *backgroundGameTexture;
+
+  cell board[N][N];
+
+  SDL_Rect boardRect[N][N];
+  SDL_Texture *cellTexture[N];
+  Button cells[N][N];
 
 public:
   // SDL_Init
