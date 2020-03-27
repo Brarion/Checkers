@@ -1,12 +1,20 @@
 #include "SDL2/i686-w64-mingw32/include/SDL2/SDL.h"
 #include "SDL2/i686-w64-mingw32/include/SDL2/SDL_image.h"
 #include "SDL2/i686-w64-mingw32/include/SDL2/SDL_mixer.h"
+#include "SDL2/i686-w64-mingw32/include/SDL2/SDL_ttf.h"
 
 #include <windows.h>
+#include <string>
 #include <ctime>
 #include <iostream>
 
+#include "server.h"
+#include "client.h"
+
+
 #define N 8
+
+#define MAX_DATA_LEN 512
 
 using namespace std;
 
@@ -15,6 +23,7 @@ typedef unsigned short us;
 enum mode
 {
   MENU,
+  CHOICE,
   GAME
 };
 
@@ -22,12 +31,18 @@ enum cell
 {
   BLACK_FREE,
   BLACK_USUAL,
-  BLACK_QUENN,
+  BLACK_QUEEN,
   WHITE_FREE,
   WHITE_USUAL,
   WHITE_QUEEN,
-  CAN_DO_STEP,
-  CAN_GET_CELL
+  CAN_DO_STEP
+};
+
+enum Player
+{
+  NONE,
+  SERVER,
+  CLIENT
 };
 
 struct Screen
@@ -75,6 +90,10 @@ private:
       2. Boards info
   */
 
+  us randomSide;
+  
+  TTF_Font *font;
+
   Screen screen;
 
   SDL_DisplayMode dMode;
@@ -84,23 +103,35 @@ private:
   bool playing;
 
   mode mode;
+  Player player;
 
   SDL_Rect backgroundRect;
   SDL_Texture *backgroundMenuTexture;
 
-  SDL_Rect chessBoardRect;
-  SDL_Texture *chessBoardTexture;
-
   Button playButton;
   Button exitButton;
+
+  SDL_Texture *backgroundChoiceTexture;
+  Button createGameButton;
+  Button joinGameButton;
 
   SDL_Texture *backgroundGameTexture;
 
   cell board[N][N];
+  cell tmpBoard[N][N];
 
   SDL_Rect boardRect[N][N];
   SDL_Texture *cellTexture[N];
   Button cells[N][N];
+
+  Server server;
+  Client client;
+
+  bool move;
+  us steps;
+
+  us x, y;
+
 
 public:
   // SDL_Init
@@ -110,8 +141,17 @@ public:
 
   void showMenu();
 
+  // Player can create the game or join a created game 
+  void showChoice();
+
   // Game itself
   void showGame();
+
+  void findWay(us i, us j);
+
+  void startServer();
+
+  void joinServer();
 
   void play();
 
