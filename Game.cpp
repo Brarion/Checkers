@@ -2,8 +2,6 @@
 
 Game::Game()
 {
-  cout << "START";
-
   playing = true;
 
   if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -18,6 +16,7 @@ Game::Game()
 
     mode = MENU;
     player = NONE;
+    myStep = NULL;
 
     // 16 / 9 - display aspect ratio for every screens
     screen.set(dMode.w / 2, (dMode.w * 9 / 16) / 2);
@@ -156,7 +155,6 @@ void Game::showChoice()
 
 void Game::showGame()
 {
-
   SDL_RenderClear(ren);
 
   // textures
@@ -168,30 +166,39 @@ void Game::showGame()
       for (us j = 0; j < N; j++)
         SDL_RenderCopy(ren,
                        cellTexture[tmpBoard[i][j]],
-                       NULL, (player == SERVER) ? &boardRect[i][j] : &boardRect[(N - 1) - i][(N - 1) - j]);
+                       NULL,
+                       &boardRect[i][j]);
   }
   else
   {
-    for (us i = 0; i < N; i++)
-      cout << "b -> " << board[3][i] << ' ';
-    cout << endl;
+    // Here to change (tmp should change after step)
+    // for (us i = 0; i < N; i++)
+    //   for (us j = 0; j < N; j++)
+    //     tmpBoard[i][j] = board[i][j];
 
     for (us i = 0; i < N; i++)
       for (us j = 0; j < N; j++)
-        tmpBoard[i][j] = board[i][j];
+        board[i][j] = tmpBoard[i][j];
 
-    for (us i = 0; i < N; i++)
-      cout << "t ->" << tmpBoard[3][i] << ' ';
-    cout << endl;
+    if (myStep)
+    {
+      steps = 0;
+      findWay(x, y);
+    }
+    else
+    {
+      board[x][y] = board[currentFigure.first][currentFigure.second];
+      board[currentFigure.first][currentFigure.second] = BLACK_FREE;
 
-    steps = 0;
-    findWay(x, y);
+      sendData();
+    }
 
     for (us i = 0; i < N; i++)
       for (us j = 0; j < N; j++)
         SDL_RenderCopy(ren,
                        cellTexture[board[i][j]],
-                       NULL, (player == SERVER) ? &boardRect[i][j] : &boardRect[(N - 1) - i][(N - 1) - j]);
+                       NULL,
+                       &boardRect[i][j]);
   }
 
   SDL_RenderPresent(ren);
@@ -199,7 +206,8 @@ void Game::showGame()
 
 void Game::findWay(us i, us j)
 {
-  if (board[i][j] == BLACK_USUAL)
+  // Just usual figures
+  if ((!side && board[i][j] == BLACK_USUAL) || (side && board[i][j] == WHITE_USUAL))
   {
     if (i + 1 < N)
     {
@@ -209,7 +217,10 @@ void Game::findWay(us i, us j)
         {
           board[i + 1][j + 1] = CAN_DO_STEP;
         }
-        else if (board[i + 1][j + 1] == WHITE_USUAL || board[i + 1][j + 1] == WHITE_QUEEN)
+        else if ((!side && ((board[i][j] == BLACK_USUAL && board[i + 1][j + 1] == WHITE_USUAL) ||
+                            (board[i][j] == BLACK_USUAL && board[i + 1][j + 1] == WHITE_QUEEN))) ||
+                 (side && ((board[i][j] == WHITE_USUAL && board[i + 1][j + 1] == BLACK_USUAL) ||
+                           (board[i][j] == WHITE_USUAL && board[i + 1][j + 1] == BLACK_QUEEN))))
         {
           if (i + 2 < N)
           {
@@ -232,7 +243,10 @@ void Game::findWay(us i, us j)
         {
           board[i + 1][j - 1] = CAN_DO_STEP;
         }
-        else if (board[i + 1][j - 1] == WHITE_USUAL || board[i + 1][j - 1] == WHITE_QUEEN)
+        else if ((!side && ((board[i][j] == BLACK_USUAL && board[i + 1][j - 1] == WHITE_USUAL) ||
+                            (board[i][j] == BLACK_USUAL && board[i + 1][j - 1] == WHITE_QUEEN))) ||
+                 (side && ((board[i][j] == WHITE_USUAL && board[i + 1][j - 1] == BLACK_USUAL) ||
+                           (board[i][j] == WHITE_USUAL && board[i + 1][j - 1] == BLACK_QUEEN))))
         {
           if (i + 2 < N)
           {
@@ -258,7 +272,10 @@ void Game::findWay(us i, us j)
         {
           board[i - 1][j + 1] = CAN_DO_STEP;
         }
-        else if (board[i - 1][j + 1] == WHITE_USUAL || board[i - 1][j + 1] == WHITE_QUEEN)
+        else if ((!side && ((board[i][j] == BLACK_USUAL && board[i - 1][j + 1] == WHITE_USUAL) ||
+                            (board[i][j] == BLACK_USUAL && board[i - 1][j + 1] == WHITE_QUEEN))) ||
+                 (side && ((board[i][j] == WHITE_USUAL && board[i - 1][j + 1] == BLACK_USUAL) ||
+                           (board[i][j] == WHITE_USUAL && board[i - 1][j + 1] == BLACK_QUEEN))))
         {
           if (i - 2 >= 0)
           {
@@ -275,25 +292,28 @@ void Game::findWay(us i, us j)
           }
         }
       }
-      if (j - 1 >= 0)
+    }
+    if (j - 1 >= 0)
+    {
+      if (board[i - 1][j - 1] == BLACK_FREE)
       {
-        if (board[i - 1][j - 1] == BLACK_FREE)
+        board[i - 1][j - 1] = CAN_DO_STEP;
+      }
+      else if ((!side && ((board[i][j] == BLACK_USUAL && board[i - 1][j - 1] == WHITE_USUAL) ||
+                          (board[i][j] == BLACK_USUAL && board[i - 1][j - 1] == WHITE_QUEEN))) ||
+               (side && ((board[i][j] == WHITE_USUAL && board[i - 1][j - 1] == BLACK_USUAL) ||
+                         (board[i][j] == WHITE_USUAL && board[i - 1][j - 1] == BLACK_QUEEN))))
+      {
+        if (i - 2 >= 0)
         {
-          board[i - 1][j - 1] = CAN_DO_STEP;
-        }
-        else if (board[i - 1][j - 1] == WHITE_USUAL || board[i - 1][j - 1] == WHITE_QUEEN)
-        {
-          if (i - 2 >= 0)
+          if (j - 2 >= 0)
           {
-            if (j - 2 >= 0)
+            if (board[i - 2][j - 2] == BLACK_FREE)
             {
-              if (board[i - 2][j - 2] == BLACK_FREE)
-              {
-                if (!steps)
-                  board[i - 2][j - 2] = CAN_DO_STEP;
-                steps++;
-                findWay(i - 2, j - 2);
-              }
+              if (!steps)
+                board[i - 2][j - 2] = CAN_DO_STEP;
+              steps++;
+              findWay(i - 2, j - 2);
             }
           }
         }
@@ -302,14 +322,21 @@ void Game::findWay(us i, us j)
   }
 }
 
-void Game::startServer()
+void Game::sendData()
 {
-  string s = "Hello World";
-  server.sendData((void *)s.c_str(), s.size() + 1);
+  cout << "Send" << endl;
+
+  cell tmpArray[N * N];
+  for (us i = 0; i < N; i++)
+    for (us j = 0; j < N; j++)
+      tmpArray[i * N + j] = board[i][j];
+  server.sendData((void *)tmpArray, sizeof(cell) * N * N);
 }
 
-void Game::joinServer()
+void Game::recvData()
 {
+  cout << "Recv" << endl;
+
   void *data = NULL;
   while (1)
   {
@@ -317,6 +344,28 @@ void Game::joinServer()
     data = client.getData();
     if (data != NULL)
       break;
+  }
+
+  cell *a = (cell *)data;
+  for (us i = 0; i < N; i++)
+    for (us j = 0; j < N; j++)
+    {
+      board[(N - 1) - i][(N - 1) - j] = a[i * N + j];
+      tmpBoard[(N - 1) - i][(N - 1) - j] = board[(N - 1) - i][(N - 1) - j];
+    }
+
+  if (start == false)
+  {
+    myStep = board[N - 1][0] == WHITE_USUAL;
+    cout << "Opa" << endl;
+    start = !start;
+    // server.incPort();
+    // client.incPort();
+  }
+  else
+  {
+    cout << "End Recv" << endl;
+    myStep = !myStep;
   }
 }
 
@@ -330,6 +379,9 @@ void Game::play()
       if (event.type == SDL_QUIT)
         playing = false;
       else if (event.type == SDL_MOUSEBUTTONDOWN)
+      {
+        x = -1;
+        y = -1;
         if (event.button.button == SDL_BUTTON_LEFT)
         {
           if (mode == MENU)
@@ -345,51 +397,65 @@ void Game::play()
             {
               player = SERVER;
               mode = GAME;
-              (board[N - 1][0] == WHITE_USUAL) ? move = true : move = false;
+              myStep = board[N - 1][0] == WHITE_USUAL;
+              side = myStep;
               // startServer();
+              sendData();
             }
             else if (joinGameButton.isPressed(&event))
             {
               player = CLIENT;
               mode = GAME;
-              // (board[N - 1][0] == WHITE_USUAL) ? move = true : move = false;
+              // (board[N - 1][0] == WHITE_USUAL) ? myStep = true : myStep = false;
               // joinServer();
+              recvData();
             }
           }
           else if (mode == GAME)
           {
-            x = -1;
-            y = -1;
             for (us i = 0; i < N; i++)
               for (us j = 0; j < N; j++)
-                if (cells[i][j].isPressed(&event) &&
-                    (board[i][j] == BLACK_USUAL || BLACK_QUEEN || WHITE_USUAL || WHITE_QUEEN) &&
-                    move)
-                {
-                  for (us i = 0; i < N; i++)
-                    for (us j = 0; j < N; j++)
-                      board[i][j] = tmpBoard[i][j];
-                  x = i;
-                  y = j;
-                  break;
-                }
+                if (cells[i][j].isPressed(&event))
+                  if ((board[i][j] == BLACK_USUAL ||
+                       board[i][j] == BLACK_QUEEN ||
+                       board[i][j] == WHITE_USUAL ||
+                       board[i][j] == WHITE_QUEEN) &&
+                      myStep)
+                  {
+                    x = i;
+                    y = j;
+                    currentFigure = pair<us, us>(x, y);
+                    break;
+                  }
+                  else if ((board[i][j] == CAN_DO_STEP) && myStep)
+                  {
+                    x = i;
+                    y = j;
+                    myStep = !myStep;
+                    break;
+                  }
           }
         }
-    }
+      }
+      else if (mode == GAME && !myStep)
+      {
+        recvData();
+      }
 
-    switch (mode)
-    {
-    case MENU:
-      showMenu();
-      break;
-    case CHOICE:
-      showChoice();
-      break;
-    case GAME:
-      showGame();
-      break;
-    default:
-      break;
+      switch (mode)
+      {
+      case MENU:
+        showMenu();
+        break;
+      case CHOICE:
+        showChoice();
+        break;
+      case GAME:
+        showGame();
+        break;
+      default:
+        break;
+      }
     }
   }
 }

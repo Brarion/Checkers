@@ -127,11 +127,16 @@ private:
   Server server;
   Client client;
 
-  bool move;
+  bool start = false;
+  bool side;
+  bool myStep;
   us steps;
 
-  us x, y;
+  short x, y;
+  pair<us, us> currentFigure;
 
+  // move and board
+  //pair<bool, cell **> data;
 
 public:
   // SDL_Init
@@ -149,9 +154,9 @@ public:
 
   void findWay(us i, us j);
 
-  void startServer();
+  void sendData();
 
-  void joinServer();
+  void recvData();
 
   void play();
 

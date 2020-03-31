@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define Port 740 // free port (see wiki)
+#define MAX_DATASIZE 256
 
 using namespace std;
 
@@ -11,10 +11,12 @@ typedef unsigned short us;
 class Client
 {
 private:
+  unsigned short Port = 740;
+
   IPaddress ip;
   TCPsocket client;
 
-  char data[100];
+  char data[MAX_DATASIZE];
 
 public:
   Client();
@@ -22,6 +24,9 @@ public:
   void recvData();
 
   void *getData();
+
+  void incPort();
+  void decPort();
 
   ~Client();
 };
