@@ -1,15 +1,18 @@
-#include "SDL2/i686-w64-mingw32/include/SDL2/SDL_net.h"
-
 #include <iostream>
 
+#include "../SDL2/i686-w64-mingw32/include/SDL2/SDL_net.h"
+
 using namespace std;
+
+#ifndef SERVER_H
+#define SERVER_H
 
 typedef unsigned short us;
 
 class Server
 {
 private:
-  unsigned short Port = 740;
+  us Port = 740;
 
   IPaddress ip;
   TCPsocket server;
@@ -18,10 +21,9 @@ private:
 public:
   Server();
 
-  void sendData(const void *data, us dataSize);
-
-  void incPort();
-  void decPort();
+  void send(const void *data, us size);
 
   ~Server();
 };
+
+#endif // SERVER_H
